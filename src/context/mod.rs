@@ -41,7 +41,8 @@ impl Context {
             return Err("context scope is locked");
         }
         self.items.push(item);
-        self.items.sort_by(|left, right| right.priority.cmp(&left.priority));
+        self.items
+            .sort_by(|left, right| right.priority.cmp(&left.priority));
         self.items.truncate(self.budget);
         Ok(())
     }
