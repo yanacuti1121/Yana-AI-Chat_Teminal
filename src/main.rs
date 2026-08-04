@@ -2,13 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod app;
+mod atlas;
+mod context;
 mod domain;
 mod forge;
 mod guard;
 mod harbor;
 mod journal;
 mod lens;
+mod memory;
 mod ui;
+mod workspace;
 
 use std::{error::Error, io, time::Duration};
 
