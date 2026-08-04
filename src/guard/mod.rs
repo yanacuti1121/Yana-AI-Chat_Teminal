@@ -103,7 +103,7 @@ impl Default for Guard {
 
 #[cfg(test)]
 mod tests {
-    use crate::forge::{ActionStatus, ActionKind, ActionRequest};
+    use crate::forge::{ActionKind, ActionRequest, ActionStatus};
 
     use super::*;
 
@@ -120,7 +120,10 @@ mod tests {
     #[test]
     fn read_only_allows_read_and_denies_write() {
         let guard = Guard::default();
-        assert_eq!(guard.evaluate(&request(ActionKind::Read, "src/lib.rs")), GuardDecision::Allow);
+        assert_eq!(
+            guard.evaluate(&request(ActionKind::Read, "src/lib.rs")),
+            GuardDecision::Allow
+        );
         assert!(matches!(
             guard.evaluate(&request(ActionKind::Patch, "src/lib.rs")),
             GuardDecision::Deny(_)
