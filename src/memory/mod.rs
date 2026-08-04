@@ -88,6 +88,9 @@ mod tests {
         });
 
         assert_eq!(memory.len(), 1);
-        assert_eq!(memory.recall(MemoryKind::Decision, "sidebar"), Some("overlay-only"));
+        assert_eq!(
+            memory.recall(MemoryKind::Decision, "sidebar"),
+            Some("overlay-only")
+        );
     }
 }
