@@ -11,6 +11,7 @@ mod harbor;
 mod journal;
 mod lens;
 mod memory;
+mod operator;
 mod ui;
 mod workspace;
 
