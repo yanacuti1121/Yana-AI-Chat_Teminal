@@ -167,10 +167,7 @@ fn render_activity(frame: &mut Frame, area: Rect, app: &App) {
             ListItem::new(Line::from(vec![
                 Span::styled(format!("{symbol} "), Style::default().fg(color)),
                 Span::styled(&activity.label, Style::default().fg(Color::White)),
-                Span::styled(
-                    format!("  {}", activity.detail),
-                    Style::default().fg(MUTED),
-                ),
+                Span::styled(format!("  {}", activity.detail), Style::default().fg(MUTED)),
             ]))
         })
         .collect::<Vec<_>>();
@@ -291,15 +288,13 @@ fn render_overlay(frame: &mut Frame, area: Rect, app: &App, overlay: Overlay) {
             )));
 
             frame.render_widget(
-                Paragraph::new(lines)
-                    .wrap(Wrap { trim: false })
-                    .block(
-                        Block::default()
-                            .title(" Scope Inspector ")
-                            .borders(Borders::ALL)
-                            .border_type(BorderType::Rounded)
-                            .border_style(Style::default().fg(CYAN)),
-                    ),
+                Paragraph::new(lines).wrap(Wrap { trim: false }).block(
+                    Block::default()
+                        .title(" Scope Inspector ")
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(CYAN)),
+                ),
                 popup,
             );
         }
@@ -321,15 +316,13 @@ fn render_overlay(frame: &mut Frame, area: Rect, app: &App, overlay: Overlay) {
                 .collect::<Vec<_>>();
 
             frame.render_widget(
-                Paragraph::new(lines)
-                    .alignment(Alignment::Left)
-                    .block(
-                        Block::default()
-                            .title(" Plan Tracker ")
-                            .borders(Borders::ALL)
-                            .border_type(BorderType::Rounded)
-                            .border_style(Style::default().fg(PURPLE)),
-                    ),
+                Paragraph::new(lines).alignment(Alignment::Left).block(
+                    Block::default()
+                        .title(" Plan Tracker ")
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(PURPLE)),
+                ),
                 popup,
             );
         }
