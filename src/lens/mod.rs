@@ -85,10 +85,7 @@ impl Lens {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LensError {
-    InvalidLineRange {
-        start_line: usize,
-        end_line: usize,
-    },
+    InvalidLineRange { start_line: usize, end_line: usize },
 }
 
 impl std::fmt::Display for LensError {
