@@ -166,7 +166,10 @@ impl std::fmt::Display for ForgeError {
             }
             Self::UnknownAction(id) => write!(formatter, "unknown action id: {id}"),
             Self::InvalidTransition { id, from, to } => {
-                write!(formatter, "invalid action transition for {id}: {from:?} -> {to:?}")
+                write!(
+                    formatter,
+                    "invalid action transition for {id}: {from:?} -> {to:?}"
+                )
             }
         }
     }
