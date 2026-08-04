@@ -38,9 +38,7 @@ impl Harbor {
     }
 
     pub fn active(&self) -> Option<&SessionSnapshot> {
-        self.active
-            .as_ref()
-            .and_then(|id| self.snapshots.get(id))
+        self.active.as_ref().and_then(|id| self.snapshots.get(id))
     }
 
     pub fn snapshots(&self) -> impl Iterator<Item = &SessionSnapshot> {
