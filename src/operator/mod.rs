@@ -64,7 +64,7 @@ impl OperatorCore {
             format!("#{id} {:?} {}", action.kind, action.target),
         );
 
-        if matches!(decision, GuardDecision::Deny(_)) {
+        if matches!(&decision, GuardDecision::Deny(_)) {
             self.forge.reject(id)?;
         }
 
@@ -216,7 +216,7 @@ mod tests {
             )
             .unwrap();
         assert!(matches!(
-            proposal.decision,
+            &proposal.decision,
             GuardDecision::RequireApproval(_)
         ));
 
@@ -243,7 +243,7 @@ mod tests {
         let proposal = operator
             .propose(1, ActionKind::Delete, "src/old.rs", "cleanup")
             .unwrap();
-        assert!(matches!(proposal.decision, GuardDecision::Deny(_)));
+        assert!(matches!(&proposal.decision, GuardDecision::Deny(_)));
         assert_eq!(
             operator.action(proposal.id).unwrap().status,
             ActionStatus::Rejected
