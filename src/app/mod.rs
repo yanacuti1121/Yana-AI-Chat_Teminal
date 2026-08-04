@@ -5,9 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::domain::{
-    Activity, ActivityState, Message, PlanStep, Role, RuntimeInfo, ScopedFile,
-};
+use crate::domain::{Activity, ActivityState, Message, PlanStep, Role, RuntimeInfo, ScopedFile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Overlay {
