@@ -72,10 +72,7 @@ impl OperatorCore {
     }
 
     pub fn approve(&mut self, timestamp: u64, id: u64) -> Result<(), OperatorError> {
-        let action = self
-            .forge
-            .action(id)
-            .ok_or(ForgeError::UnknownAction(id))?;
+        let action = self.forge.action(id).ok_or(ForgeError::UnknownAction(id))?;
         match self.guard.evaluate(action) {
             GuardDecision::Deny(reason) => return Err(OperatorError::Denied(reason)),
             GuardDecision::Allow | GuardDecision::RequireApproval(_) => {}
