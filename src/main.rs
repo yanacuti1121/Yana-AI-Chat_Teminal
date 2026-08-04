@@ -3,6 +3,11 @@
 
 mod app;
 mod domain;
+mod forge;
+mod guard;
+mod harbor;
+mod journal;
+mod lens;
 mod ui;
 
 use std::{error::Error, io, time::Duration};
