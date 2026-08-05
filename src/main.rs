@@ -3,9 +3,12 @@
 
 mod app;
 mod atlas;
+mod bridge;
+mod conductor;
 mod context;
 mod domain;
 mod forge;
+mod gateway;
 mod guard;
 mod harbor;
 mod intent;
@@ -14,6 +17,7 @@ mod lens;
 mod memory;
 mod operator;
 mod reflection;
+mod resource;
 mod ui;
 mod workspace;
 
