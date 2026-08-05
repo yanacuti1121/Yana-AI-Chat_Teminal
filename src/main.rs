@@ -45,6 +45,7 @@ mod request_control;
 mod resource;
 mod rollback;
 mod sandbox;
+mod self_verification;
 mod streaming;
 mod telemetry;
 mod text_patch;
