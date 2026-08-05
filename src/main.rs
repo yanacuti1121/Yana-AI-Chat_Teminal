@@ -51,6 +51,7 @@ mod transaction;
 mod ui;
 mod workspace;
 mod workspace_diff;
+mod workspace_index;
 mod workspace_io;
 mod workspace_lock;
 mod workspace_ops;
