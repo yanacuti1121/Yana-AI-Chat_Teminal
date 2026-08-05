@@ -20,10 +20,13 @@ mod journal;
 mod lens;
 mod memory;
 mod operator;
+mod patch;
 mod reflection;
 mod resource;
+mod sandbox;
 mod ui;
 mod workspace;
+mod workspace_io;
 
 use std::{error::Error, io, time::Duration};
 
