@@ -45,6 +45,7 @@ mod release;
 mod request_control;
 mod resource;
 mod rollback;
+mod runtime;
 mod sandbox;
 mod self_verification;
 mod streaming;
