@@ -3,19 +3,30 @@
 
 mod app;
 mod atlas;
+mod awareness;
+mod bridge;
+mod conductor;
 mod context;
+mod decision;
 mod domain;
 mod forge;
+mod gateway;
+mod goal;
 mod guard;
 mod harbor;
+mod intelligence;
 mod intent;
 mod journal;
 mod lens;
 mod memory;
 mod operator;
+mod patch;
 mod reflection;
+mod resource;
+mod sandbox;
 mod ui;
 mod workspace;
+mod workspace_io;
 
 use std::{error::Error, io, time::Duration};
 
