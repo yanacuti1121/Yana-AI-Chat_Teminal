@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Vũ Văn Tâm
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod workspace_map;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Candidate {
     pub path: String,
