@@ -5,7 +5,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::domain::{Activity, ActivityState, Message, PlanStep, Role, RuntimeInfo, ScopedFile};
+use crate::{
+    domain::{Activity, ActivityState, Message, PlanStep, Role, RuntimeInfo, ScopedFile},
+    engines::{command::UiCommand, notification::NoticeLevel, workflow::WorkflowState, UiEngines},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Overlay {
@@ -24,15 +27,19 @@ pub struct App {
     pub sidebar_visible: bool,
     pub overlay: Option<Overlay>,
     pub should_quit: bool,
+    pub engines: UiEngines,
 }
 
 impl App {
     pub fn demo() -> Self {
+        let mut engines = UiEngines::default();
+        engines.context_view.sync(4, true);
+        let provider = engines.provider.current().clone();
         Self {
             messages: vec![
                 Message {
                     role: Role::System,
-                    content: "Local-first session ready. Scope is locked until you approve expansion."
+                    content: "14 UI engines ready. Type /help to inspect the terminal surface."
                         .into(),
                     timestamp: timestamp(),
                 },
@@ -44,87 +51,88 @@ impl App {
                 },
                 Message {
                     role: Role::Assistant,
-                    content: "Tôi đã khoanh vùng phần giao diện. Hiện có 4 file ứng viên và chưa đọc sâu ngoài scope."
+                    content: "Tôi đã khoanh vùng phần giao diện. Đây vẫn là UI bridge mock; Yana Core chưa bị nhân bản vào repo này."
                         .into(),
                     timestamp: timestamp(),
                 },
             ],
             activities: vec![
                 Activity {
-                    label: "Scope selected".into(),
-                    detail: "4 files · 1,842 lines".into(),
+                    label: "UI engines registered".into(),
+                    detail: format!("{} engines", UiEngines::COUNT),
                     state: ActivityState::Done,
                 },
                 Activity {
-                    label: "Reading context".into(),
-                    detail: "composer.rs".into(),
-                    state: ActivityState::Running,
+                    label: "Context view".into(),
+                    detail: engines.context_view.summary(),
+                    state: ActivityState::Done,
                 },
                 Activity {
-                    label: "Protected boundary".into(),
-                    detail: "providers/, storage/".into(),
+                    label: "Runtime boundary".into(),
+                    detail: "mock bridge only".into(),
                     state: ActivityState::Warning,
                 },
             ],
             plan: vec![
                 PlanStep {
-                    title: "Khoanh vùng UI".into(),
+                    title: "Chat + composer surface".into(),
                     done: true,
                     active: false,
                 },
                 PlanStep {
-                    title: "Đọc composer".into(),
+                    title: "14 UI engines".into(),
                     done: true,
                     active: false,
                 },
                 PlanStep {
-                    title: "Dựng transcript".into(),
+                    title: "Bridge contract".into(),
                     done: false,
                     active: true,
                 },
                 PlanStep {
-                    title: "Review diff".into(),
+                    title: "Real provider events".into(),
                     done: false,
                     active: false,
                 },
             ],
             scope: vec![
                 ScopedFile {
-                    path: "src/chat/tui/composer.rs".into(),
-                    confidence: 97,
-                    lines: 236,
+                    path: "src/app/mod.rs".into(),
+                    confidence: 98,
+                    lines: 280,
                     selected: true,
                 },
                 ScopedFile {
-                    path: "src/chat/tui/input.rs".into(),
-                    confidence: 93,
-                    lines: 156,
+                    path: "src/engines/".into(),
+                    confidence: 96,
+                    lines: 600,
                     selected: true,
                 },
                 ScopedFile {
-                    path: "src/chat/tui/render.rs".into(),
-                    confidence: 81,
-                    lines: 612,
+                    path: "src/ui/mod.rs".into(),
+                    confidence: 91,
+                    lines: 330,
                     selected: true,
                 },
                 ScopedFile {
-                    path: "src/chat/theme.rs".into(),
-                    confidence: 69,
-                    lines: 104,
+                    path: "src/ui/theme.rs".into(),
+                    confidence: 72,
+                    lines: 40,
                     selected: true,
                 },
             ],
             runtime: RuntimeInfo {
-                runtime: "TurboFieldfare".into(),
-                model: "Gemma 4 26B-A4B-IT".into(),
-                context: "4K".into(),
-                local: true,
+                runtime: provider.name,
+                model: provider.model,
+                context: "UI mock".into(),
+                local: provider.local,
             },
             input: String::new(),
-            status: "Smart Scope active".into(),
+            status: "14 UI engines ready".into(),
             sidebar_visible: true,
             overlay: None,
             should_quit: false,
+            engines,
         }
     }
 
@@ -147,7 +155,10 @@ impl App {
                     self.should_quit = true;
                 }
             }
-            KeyCode::Tab => self.sidebar_visible = !self.sidebar_visible,
+            KeyCode::Tab => {
+                self.sidebar_visible = !self.sidebar_visible;
+                self.engines.layout.set_sidebar(self.sidebar_visible);
+            }
             KeyCode::Enter => {
                 if self.overlay.is_some() {
                     self.overlay = None;
@@ -157,8 +168,12 @@ impl App {
             }
             KeyCode::Backspace => {
                 self.input.pop();
+                self.engines.composer.sync(&self.input);
             }
-            KeyCode::Char(character) if self.overlay.is_none() => self.input.push(character),
+            KeyCode::Char(character) if self.overlay.is_none() => {
+                self.input.push(character);
+                self.engines.composer.sync(&self.input);
+            }
             _ => {}
         }
     }
@@ -177,24 +192,144 @@ impl App {
             return;
         }
 
+        self.input.clear();
+        self.engines.composer.clear();
+
+        if let Some(command) = self.engines.command.parse(&prompt) {
+            self.execute_command(command);
+            return;
+        }
+
+        self.engines.workflow.transition(WorkflowState::Queued);
         self.messages.push(Message {
             role: Role::User,
             content: prompt,
             timestamp: timestamp(),
         });
+        self.engines.chat.record_submission();
+        self.engines.storage.mark_dirty();
+        self.engines.workflow.transition(WorkflowState::Rendering);
         self.messages.push(Message {
             role: Role::Assistant,
-            content: "MVP UI đã nhận yêu cầu. Backend model sẽ được nối qua bridge sau khi luồng giao diện được chốt."
+            content: "UI workflow đã nhận yêu cầu qua Mock Bridge. Bước tiếp theo là thay mock event bằng bridge tới Yana Core, không nhân bản runtime ở đây."
                 .into(),
             timestamp: timestamp(),
         });
+        self.engines.workflow.transition(WorkflowState::Complete);
+        self.engines.notification.push(
+            NoticeLevel::Success,
+            format!("Prompt #{} rendered", self.engines.chat.submitted()),
+        );
         self.activities.push(Activity {
-            label: "Prompt queued".into(),
-            detail: "mock bridge".into(),
+            label: "Workflow complete".into(),
+            detail: format!("prompt #{} · mock bridge", self.engines.chat.submitted()),
             state: ActivityState::Done,
         });
-        self.input.clear();
-        self.status = "Mock response rendered".into();
+        self.status = "Mock workflow rendered".into();
+    }
+
+    fn execute_command(&mut self, command: UiCommand) {
+        match command {
+            UiCommand::Help => self.system_message(
+                "/help  /engines  /clear  /new  /provider <name>  /search <text>  /attach <path>  /theme  /render  /save",
+            ),
+            UiCommand::Engines => {
+                self.system_message(&format!("14 UI engines: {}", UiEngines::names().join(", ")))
+            }
+            UiCommand::Clear => {
+                self.messages.clear();
+                self.status = "Transcript cleared".into();
+            }
+            UiCommand::NewSession => {
+                self.engines.session.new_session();
+                self.messages.clear();
+                let message = format!(
+                    "Started {} (id {}).",
+                    self.engines.session.title(),
+                    self.engines.session.id()
+                );
+                self.system_message(&message);
+                self.status = "New session".into();
+            }
+            UiCommand::Provider(name) => {
+                if name.is_empty() {
+                    let labels = self.engines.provider.labels().collect::<Vec<_>>().join(", ");
+                    self.system_message(&format!("Providers: {labels}"));
+                } else {
+                    match self.engines.provider.select(&name) {
+                        Ok(profile) => {
+                            self.runtime.runtime = profile.name.clone();
+                            self.runtime.model = profile.model.clone();
+                            self.runtime.local = profile.local;
+                            self.status = format!("Provider: {}", profile.name);
+                        }
+                        Err(error) => self.warn(error),
+                    }
+                }
+            }
+            UiCommand::Search(query) => {
+                let count = self.engines.search.search(&self.messages, &query);
+                self.system_message(&format!("Search “{}”: {} match(es).", query, count));
+                self.status = format!("Search: {count} matches");
+            }
+            UiCommand::Attach(path) => match self.engines.attachment.attach(&path) {
+                Ok(()) => {
+                    self.system_message(&format!("Attached workspace path: {path}"));
+                    self.status = format!(
+                        "{} attachment(s)",
+                        self.engines.attachment.pending().len()
+                    );
+                }
+                Err(error) => self.warn(error),
+            },
+            UiCommand::Theme => {
+                self.engines.theme.toggle();
+                let message = format!(
+                    "Theme switched to {:?}. UI palette wiring remains intentionally local.",
+                    self.engines.theme.current()
+                );
+                self.system_message(&message);
+            }
+            UiCommand::Render => {
+                self.engines.render.toggle();
+                let message = format!("Render mode: {:?}.", self.engines.render.mode());
+                self.system_message(&message);
+            }
+            UiCommand::Save => {
+                self.engines.storage.checkpoint(self.messages.len());
+                let message = format!(
+                    "UI checkpoint recorded for {} messages (in-memory MVP).",
+                    self.engines.storage.saved_messages()
+                );
+                self.system_message(&message);
+                self.status = "Checkpoint clean".into();
+            }
+            UiCommand::Unknown(name) => self.warn(format!("Unknown command /{name}. Type /help.")),
+        }
+    }
+
+    fn system_message(&mut self, content: &str) {
+        self.messages.push(Message {
+            role: Role::System,
+            content: content.into(),
+            timestamp: timestamp(),
+        });
+        self.engines
+            .notification
+            .push(NoticeLevel::Info, content.to_owned());
+    }
+
+    fn warn(&mut self, content: impl Into<String>) {
+        let content = content.into();
+        self.messages.push(Message {
+            role: Role::System,
+            content: format!("Warning: {content}"),
+            timestamp: timestamp(),
+        });
+        self.engines
+            .notification
+            .push(NoticeLevel::Warning, content.clone());
+        self.status = content;
     }
 }
 

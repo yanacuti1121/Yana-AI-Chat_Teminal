@@ -61,3 +61,39 @@ Original concept, product direction, architecture, and interaction design by **V
 AI tools may assist with implementation, testing, documentation, and review. Accepted changes remain under maintainer control.
 
 Licensed under Apache-2.0.
+
+## UI engine surface
+
+The terminal now exposes fourteen deliberately UI-facing engines:
+
+1. Chat
+2. Composer
+3. Render
+4. Layout
+5. Workflow
+6. Provider
+7. Session
+8. Storage
+9. Search
+10. Command
+11. Context View
+12. Attachment
+13. Notification
+14. Theme
+
+These engines coordinate terminal state and mock interaction only. They do not replace Yana Core, execute shell commands, mutate the workspace, or persist credentials.
+
+### MVP commands
+
+```text
+/help
+/engines
+/clear
+/new
+/provider [name]
+/search <text>
+/attach <workspace-relative-path>
+/theme
+/render
+/save
+```

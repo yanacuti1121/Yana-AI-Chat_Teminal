@@ -253,6 +253,15 @@ fn render_status(frame: &mut Frame, area: Rect, app: &App) {
         Span::styled("quit", Style::default().fg(MUTED)),
         Span::styled("   ·   ", Style::default().fg(PANEL)),
         Span::styled(&app.status, Style::default().fg(GREEN)),
+        Span::styled("   ·   ", Style::default().fg(PANEL)),
+        Span::styled(
+            format!(
+                "session {} · {:?}",
+                app.engines.session.id(),
+                app.engines.workflow.state()
+            ),
+            Style::default().fg(MUTED),
+        ),
     ]));
     frame.render_widget(status, area);
 }

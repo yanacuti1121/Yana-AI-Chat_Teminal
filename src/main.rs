@@ -3,6 +3,7 @@
 
 mod app;
 mod domain;
+mod engines;
 mod ui;
 
 use std::{error::Error, io, time::Duration};
