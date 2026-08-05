@@ -35,6 +35,7 @@ mod operator;
 mod patch;
 mod persistence;
 mod profile;
+mod project_dna;
 mod providers;
 mod recovery;
 mod reflection;
