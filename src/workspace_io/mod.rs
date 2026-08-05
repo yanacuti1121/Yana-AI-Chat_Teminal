@@ -42,7 +42,7 @@ impl WorkspaceIo {
     }
 
     pub fn read_text(&self, relative: impl AsRef<Path>) -> Result<String, WorkspaceIoError> {
-        let path = self.resolve_existing(relative.as_ref())?;
+        let path = self.resolve_existing_public(relative.as_ref())?;
         let metadata = fs::metadata(&path).map_err(WorkspaceIoError::Io)?;
         if !metadata.is_file() {
             return Err(WorkspaceIoError::NotAFile(path));
@@ -84,9 +84,9 @@ impl WorkspaceIo {
     pub fn resolve_for_write(&self, relative: impl AsRef<Path>) -> Result<PathBuf, WorkspaceIoError> {
         let relative = validate_relative(relative.as_ref())?;
         let candidate = self.root.join(relative);
-        let parent = candidate.parent().ok_or_else(|| {
-            WorkspaceIoError::EscapesWorkspace(candidate.clone())
-        })?;
+        let parent = candidate
+            .parent()
+            .ok_or_else(|| WorkspaceIoError::EscapesWorkspace(candidate.clone()))?;
         let canonical_parent = fs::canonicalize(parent).map_err(WorkspaceIoError::Io)?;
         if !canonical_parent.starts_with(&self.root) {
             return Err(WorkspaceIoError::EscapesWorkspace(candidate));
@@ -94,8 +94,11 @@ impl WorkspaceIo {
         Ok(candidate)
     }
 
-    fn resolve_existing(&self, relative: &Path) -> Result<PathBuf, WorkspaceIoError> {
-        let relative = validate_relative(relative)?;
+    pub fn resolve_existing_public(
+        &self,
+        relative: impl AsRef<Path>,
+    ) -> Result<PathBuf, WorkspaceIoError> {
+        let relative = validate_relative(relative.as_ref())?;
         let canonical = fs::canonicalize(self.root.join(relative)).map_err(WorkspaceIoError::Io)?;
         if !canonical.starts_with(&self.root) {
             return Err(WorkspaceIoError::EscapesWorkspace(canonical));
@@ -126,18 +129,32 @@ pub enum WorkspaceIoError {
     InvalidRelativePath(PathBuf),
     EscapesWorkspace(PathBuf),
     NotAFile(PathBuf),
-    FileTooLarge { path: PathBuf, bytes: u64, limit: u64 },
+    FileTooLarge {
+        path: PathBuf,
+        bytes: u64,
+        limit: u64,
+    },
 }
 
 impl std::fmt::Display for WorkspaceIoError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "workspace I/O error: {error}"),
-            Self::RootIsNotDirectory(path) => write!(formatter, "workspace root is not a directory: {}", path.display()),
-            Self::InvalidRelativePath(path) => write!(formatter, "invalid workspace-relative path: {}", path.display()),
-            Self::EscapesWorkspace(path) => write!(formatter, "resolved path escapes workspace: {}", path.display()),
+            Self::RootIsNotDirectory(path) => {
+                write!(formatter, "workspace root is not a directory: {}", path.display())
+            }
+            Self::InvalidRelativePath(path) => {
+                write!(formatter, "invalid workspace-relative path: {}", path.display())
+            }
+            Self::EscapesWorkspace(path) => {
+                write!(formatter, "resolved path escapes workspace: {}", path.display())
+            }
             Self::NotAFile(path) => write!(formatter, "path is not a file: {}", path.display()),
-            Self::FileTooLarge { path, bytes, limit } => write!(formatter, "file is too large: {} ({bytes} bytes, limit {limit})", path.display()),
+            Self::FileTooLarge { path, bytes, limit } => write!(
+                formatter,
+                "file is too large: {} ({bytes} bytes, limit {limit})",
+                path.display()
+            ),
         }
     }
 }
@@ -151,7 +168,10 @@ mod tests {
     #[test]
     fn rejects_parent_traversal() {
         let result = validate_relative(Path::new("../secret"));
-        assert!(matches!(result, Err(WorkspaceIoError::InvalidRelativePath(_))));
+        assert!(matches!(
+            result,
+            Err(WorkspaceIoError::InvalidRelativePath(_))
+        ));
     }
 
     #[test]
