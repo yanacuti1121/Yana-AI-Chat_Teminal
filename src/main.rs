@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Vũ Văn Tâm
 // SPDX-License-Identifier: Apache-2.0
 
+mod adapters;
 mod app;
 mod atlas;
 mod awareness;
@@ -19,12 +20,15 @@ mod intent;
 mod journal;
 mod lens;
 mod memory;
+mod model;
 mod operator;
 mod patch;
 mod persistence;
 mod reflection;
+mod request_control;
 mod resource;
 mod sandbox;
+mod streaming;
 mod ui;
 mod workspace;
 mod workspace_io;
