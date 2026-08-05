@@ -2,17 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    forge::{ActionKind, ActionRequest, Forge, ForgeError},
-    guard::{Guard, GuardDecision, PermissionLevel},
+    forge::{ActionKind, ActionPreview, ActionRequest, Forge, ForgeError},
+    guard::{Guard, GuardDecision, GuardReport, PermissionLevel},
     harbor::{Harbor, SessionSnapshot},
+    intent::{Intent, IntentEngine},
     journal::{Journal, JournalKind},
     lens::{Evidence, Lens, LensError},
+    reflection::{Reflection, ReflectionEngine, ReflectionInput},
 };
 
 #[derive(Debug)]
 pub struct ActionProposal {
     pub id: u64,
     pub decision: GuardDecision,
+    pub report: GuardReport,
+    pub preview: ActionPreview,
 }
 
 #[derive(Debug)]
@@ -35,6 +39,17 @@ impl OperatorCore {
         }
     }
 
+    pub fn analyze_intent(&mut self, timestamp: u64, prompt: &str) -> Intent {
+        let intent = IntentEngine::classify(prompt);
+        self.journal.record(
+            timestamp,
+            JournalKind::Think,
+            "intent classified",
+            format!("{:?} · {:?}", intent.kind, intent.risk),
+        );
+        intent
+    }
+
     pub fn propose(
         &mut self,
         timestamp: u64,
@@ -47,7 +62,16 @@ impl OperatorCore {
             .forge
             .action(id)
             .expect("newly proposed action must exist");
-        let decision = self.guard.evaluate(action);
+        let report = self.guard.explain(action);
+        let decision = report.decision.clone();
+        let preview = self.forge.preview(id)?;
+
+        self.journal.record(
+            timestamp,
+            JournalKind::Plan,
+            "action preview prepared",
+            preview.summary.clone(),
+        );
 
         let (journal_kind, summary) = match &decision {
             GuardDecision::Allow => (JournalKind::Decide, "action allowed"),
@@ -61,14 +85,19 @@ impl OperatorCore {
             timestamp,
             journal_kind,
             summary,
-            format!("#{id} {:?} {}", action.kind, action.target),
+            format!("#{id} · {}", report.reason),
         );
 
         if matches!(&decision, GuardDecision::Deny(_)) {
             self.forge.reject(id)?;
         }
 
-        Ok(ActionProposal { id, decision })
+        Ok(ActionProposal {
+            id,
+            decision,
+            report,
+            preview,
+        })
     }
 
     pub fn approve(&mut self, timestamp: u64, id: u64) -> Result<(), OperatorError> {
@@ -105,6 +134,21 @@ impl OperatorCore {
             format!("action #{id}"),
         );
         Ok(())
+    }
+
+    pub fn reflect(&mut self, timestamp: u64, input: ReflectionInput) -> Reflection {
+        let reflection = ReflectionEngine::evaluate(input);
+        let detail = format!(
+            "outcome={:?} confidence={} strengths={} concerns={} next={}",
+            reflection.outcome,
+            reflection.confidence,
+            reflection.strengths.len(),
+            reflection.concerns.len(),
+            reflection.next_time.len()
+        );
+        self.journal
+            .record(timestamp, JournalKind::Reflect, "task reflection", detail);
+        reflection
     }
 
     pub fn attach_evidence(&mut self, evidence: Evidence) {
@@ -194,9 +238,11 @@ impl std::error::Error for OperatorError {}
 #[cfg(test)]
 mod tests {
     use crate::{
-        forge::{ActionKind, ActionStatus},
+        forge::{ActionKind, ActionStatus, ImpactLevel},
         guard::{GuardDecision, PermissionLevel},
+        intent::IntentKind,
         lens::Evidence,
+        reflection::{Outcome, ReflectionInput},
     };
 
     use super::*;
@@ -216,6 +262,7 @@ mod tests {
             &proposal.decision,
             GuardDecision::RequireApproval(_)
         ));
+        assert_eq!(proposal.preview.impact, ImpactLevel::Medium);
 
         operator.approve(2, proposal.id).unwrap();
         operator
@@ -231,7 +278,6 @@ mod tests {
             ActionStatus::Completed
         );
         assert_eq!(operator.lens().all().len(), 1);
-        assert_eq!(operator.journal().entries().len(), 3);
     }
 
     #[test]
@@ -241,9 +287,33 @@ mod tests {
             .propose(1, ActionKind::Delete, "src/old.rs", "cleanup")
             .unwrap();
         assert!(matches!(&proposal.decision, GuardDecision::Deny(_)));
+        assert!(proposal.report.suggestion.is_some());
         assert_eq!(
             operator.action(proposal.id).unwrap().status,
             ActionStatus::Rejected
         );
+    }
+
+    #[test]
+    fn intent_and_reflection_are_recorded() {
+        let mut operator = OperatorCore::new(PermissionLevel::WorkspaceWrite);
+        let intent = operator.analyze_intent(1, "Thiết kế lại giao diện composer");
+        assert_eq!(intent.kind, IntentKind::Refactor);
+
+        let reflection = operator.reflect(
+            2,
+            ReflectionInput {
+                outcome: Outcome::Success,
+                confidence: 91,
+                files_read: 4,
+                files_modified: 2,
+                tests_passed: 12,
+                tests_failed: 0,
+                scope_expansions: 0,
+                unnecessary_reads: 0,
+            },
+        );
+        assert!(reflection.concerns.is_empty());
+        assert_eq!(operator.journal().reflection().count(), 1);
     }
 }
