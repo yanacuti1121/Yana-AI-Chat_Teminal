@@ -3,14 +3,18 @@
 
 mod app;
 mod atlas;
+mod awareness;
 mod bridge;
 mod conductor;
 mod context;
+mod decision;
 mod domain;
 mod forge;
 mod gateway;
+mod goal;
 mod guard;
 mod harbor;
+mod intelligence;
 mod intent;
 mod journal;
 mod lens;
