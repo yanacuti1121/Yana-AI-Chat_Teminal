@@ -8,10 +8,12 @@ mod domain;
 mod forge;
 mod guard;
 mod harbor;
+mod intent;
 mod journal;
 mod lens;
 mod memory;
 mod operator;
+mod reflection;
 mod ui;
 mod workspace;
 
