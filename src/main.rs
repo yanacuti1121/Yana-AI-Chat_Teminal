@@ -18,6 +18,7 @@ mod harbor;
 mod intelligence;
 mod intent;
 mod journal;
+mod knowledge;
 mod lens;
 mod memory;
 mod model;
