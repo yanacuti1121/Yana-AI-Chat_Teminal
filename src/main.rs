@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod adapters;
+mod agents;
 mod app;
 mod architectural_memory;
 mod architecture_audit;
@@ -45,6 +46,7 @@ mod release;
 mod request_control;
 mod resource;
 mod rollback;
+mod runtime;
 mod sandbox;
 mod self_verification;
 mod streaming;
