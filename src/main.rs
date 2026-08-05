@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Vũ Văn Tâm
 // SPDX-License-Identifier: Apache-2.0
 
+mod adapters;
 mod app;
 mod atlas;
 mod awareness;
@@ -9,6 +10,7 @@ mod conductor;
 mod context;
 mod decision;
 mod domain;
+mod file_plan;
 mod forge;
 mod gateway;
 mod goal;
@@ -17,17 +19,26 @@ mod harbor;
 mod intelligence;
 mod intent;
 mod journal;
+mod knowledge;
 mod lens;
 mod memory;
+mod model;
 mod operator;
 mod patch;
 mod persistence;
 mod reflection;
+mod request_control;
 mod resource;
+mod rollback;
 mod sandbox;
+mod streaming;
+mod text_patch;
 mod ui;
 mod workspace;
+mod workspace_diff;
 mod workspace_io;
+mod workspace_lock;
+mod workspace_ops;
 
 use std::{error::Error, io, time::Duration};
 
