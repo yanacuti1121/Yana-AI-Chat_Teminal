@@ -3,6 +3,7 @@
 
 mod adapters;
 mod app;
+mod architectural_memory;
 mod architecture_audit;
 mod atlas;
 mod awareness;
