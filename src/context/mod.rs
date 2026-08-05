@@ -1,6 +1,18 @@
 // SPDX-FileCopyrightText: 2026 Vũ Văn Tâm
 // SPDX-License-Identifier: Apache-2.0
 
+pub mod budget;
+pub mod builder;
+pub mod estimator;
+pub mod progressive;
+pub mod ranking;
+
+pub use budget::{BudgetUsage, ContextBudget};
+pub use builder::{AdaptiveContextBuilder, ContextBundle, ContextSlice};
+pub use estimator::TokenEstimator;
+pub use progressive::ExpansionPlan;
+pub use ranking::{rank_candidates, ContextCandidate};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextItem {
     pub source: String,
