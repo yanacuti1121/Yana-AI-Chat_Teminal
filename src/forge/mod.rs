@@ -24,6 +24,24 @@ pub enum ActionStatus {
     Failed,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImpactLevel {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionPreview {
+    pub id: u64,
+    pub kind: ActionKind,
+    pub target: String,
+    pub summary: String,
+    pub impact: ImpactLevel,
+    pub mutates_workspace: bool,
+    pub requires_verification: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRequest {
     pub id: u64,
@@ -66,6 +84,29 @@ impl Forge {
             status: ActionStatus::Proposed,
         });
         Ok(id)
+    }
+
+    pub fn preview(&self, id: u64) -> Result<ActionPreview, ForgeError> {
+        let action = self.action(id).ok_or(ForgeError::UnknownAction(id))?;
+        let (impact, mutates_workspace, requires_verification) = match action.kind {
+            ActionKind::Read | ActionKind::Search => (ImpactLevel::Low, false, false),
+            ActionKind::Create | ActionKind::Patch | ActionKind::Rename => {
+                (ImpactLevel::Medium, true, true)
+            }
+            ActionKind::Run | ActionKind::Git | ActionKind::Delete => {
+                (ImpactLevel::High, true, true)
+            }
+        };
+
+        Ok(ActionPreview {
+            id,
+            kind: action.kind,
+            target: action.target.clone(),
+            summary: format!("{:?} {} — {}", action.kind, action.target, action.reason),
+            impact,
+            mutates_workspace,
+            requires_verification,
+        })
     }
 
     pub fn approve(&mut self, id: u64) -> Result<(), ForgeError> {
@@ -165,12 +206,10 @@ impl std::fmt::Display for ForgeError {
                 write!(formatter, "path escapes the workspace boundary: {path}")
             }
             Self::UnknownAction(id) => write!(formatter, "unknown action id: {id}"),
-            Self::InvalidTransition { id, from, to } => {
-                write!(
-                    formatter,
-                    "invalid action transition for {id}: {from:?} -> {to:?}"
-                )
-            }
+            Self::InvalidTransition { id, from, to } => write!(
+                formatter,
+                "invalid action transition for {id}: {from:?} -> {to:?}"
+            ),
         }
     }
 }
@@ -198,5 +237,18 @@ mod tests {
         forge.approve(id).unwrap();
         forge.complete(id).unwrap();
         assert_eq!(forge.action(id).unwrap().status, ActionStatus::Completed);
+    }
+
+    #[test]
+    fn preview_reports_impact_without_applying() {
+        let mut forge = Forge::new();
+        let id = forge
+            .propose(ActionKind::Patch, "src/ui/mod.rs", "apply theme")
+            .unwrap();
+        let preview = forge.preview(id).unwrap();
+
+        assert_eq!(preview.impact, ImpactLevel::Medium);
+        assert!(preview.mutates_workspace);
+        assert_eq!(forge.action(id).unwrap().status, ActionStatus::Proposed);
     }
 }
