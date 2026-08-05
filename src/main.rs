@@ -21,6 +21,7 @@ mod lens;
 mod memory;
 mod operator;
 mod patch;
+mod persistence;
 mod reflection;
 mod resource;
 mod sandbox;
