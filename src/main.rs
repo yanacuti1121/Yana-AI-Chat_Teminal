@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 mod adapters;
+mod agents;
 mod app;
 mod architectural_memory;
 mod architecture_audit;
