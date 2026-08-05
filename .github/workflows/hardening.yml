@@ -1,0 +1,73 @@
+name: Production Hardening
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hardening:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: cargo test --all-targets
+
+      - name: Locked release build
+        run: cargo build --release --locked
+
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject committed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --exclude-dir=.git --exclude='*.lock' '(api[_-]?key|authorization|bearer|secret)[[:space:]]*[:=][[:space:]]*["'"'][^"'"']{8,}' .; then
+            echo 'Potential committed secret detected.' >&2
+            exit 1
+          fi
+
+      - name: Verify SPDX headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          while IFS= read -r -d '' file; do
+            if ! head -n 4 "$file" | grep -q 'SPDX-License-Identifier: Apache-2.0'; then
+              echo "Missing SPDX header: $file" >&2
+              missing=1
+            fi
+          done < <(find src -name '*.rs' -print0)
+          exit "$missing"
+
+      - name: Deny unsafe release automation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --include='*.yml' --include='*.yaml' '(cargo publish|npm publish|twine upload|gh release create)' .github/workflows; then
+            echo 'Publishing must remain explicit and reviewed.' >&2
+            exit 1
+          fi
