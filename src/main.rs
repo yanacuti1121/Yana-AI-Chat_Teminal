@@ -8,6 +8,7 @@ mod awareness;
 mod bridge;
 mod conductor;
 mod context;
+mod core;
 mod decision;
 mod domain;
 mod file_plan;
